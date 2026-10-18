@@ -1,14 +1,14 @@
 ---
 title: DNS over IRC
-summary: An IRC channel carries dynamic DNS update requests; the published answers still come from DNS, while chat serves as the separate change path.
+summary: IRC carries hostname and IP mappings that a local cache and libc Name Service Switch use to resolve names without publishing them through DNS.
 category: DNS over something else
-tags: IRC, dynamic DNS, updates
+tags: IRC, name resolution, libc Name Service Switch
 image: /static/images/talk/slide-18.webp
 source: https://purpleidea.com/blog/2020/09/01/inexpensive-dns-over-irc/
 status: published
-updated: 2026-08-20T00:00:00Z
+updated: 2026-10-18T00:00:00Z
 ---
 
-This design uses IRC as the transport for dynamic DNS updates. It repurposes an existing chat network for a task that normally needs a direct update channel.
+This design exchanges hostname and IP mappings over IRC. A local cache and libc Name Service Switch make those mappings available to local applications as name-resolution results.
 
-It is unusual because the DNS data plane and the update transport are deliberately separate. DNS remains the published result; IRC carries the change requests.
+It is unusual because it uses a chat network for name resolution without sending DNS update requests or publishing the mappings in normal DNS.
