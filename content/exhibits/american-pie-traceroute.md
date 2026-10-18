@@ -6,9 +6,9 @@ tags: traceroute, music, makerforce.io
 image: /static/images/talk/slide-10.webp
 source: https://www.youtube.com/watch?v=_y36fG2Oba0
 status: published
-updated: 2026-08-20T00:00:00Z
+updated: 2026-10-18T00:00:00Z
 ---
 
 makerforce.io used traceroute host names to carry a version of *American Pie*. Each hop becomes a line in the route rather than a network device name.
 
-It is a good reminder that reverse DNS is presentation data. A resolver can return a route that is technically normal and theatrically much more useful.
+It is a good reminder that reverse DNS is presentation data. Traceroute discovers the responding hops, and reverse DNS supplies their displayed names.
