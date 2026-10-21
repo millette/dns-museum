@@ -148,6 +148,8 @@ td small { display: block; }
 .edit { padding: 0; }
 .editor-page .exhibit-toolbar { margin-bottom: 1.2rem; }
 .editor-state { color: var(--quiet); font-size: 0.75rem; }
+.public-entry-link { color: var(--accent-dark); font-size: 0.82rem; font-weight: 680; text-decoration: none; white-space: nowrap; }
+.public-entry-link:hover { text-decoration: underline; }
 .editor-label { width: fit-content; margin: 0 0 0.4rem; }
 .editor-label small { display: inline; font-size: inherit; font-weight: 450; letter-spacing: normal; text-transform: none; }
 .page-category { width: fit-content; min-width: 12rem; margin-top: 0.15rem; padding: 0.1rem 0.15rem; border: 0; border-bottom: 1px dashed var(--line-strong); border-radius: 0; background: transparent; color: var(--accent-dark); font: inherit; letter-spacing: inherit; text-transform: uppercase; }

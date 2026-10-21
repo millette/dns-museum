@@ -102,7 +102,7 @@ function editor(array $entry, string $error = '', string $preview = ''): void {
     <?php if ($error !== ''): ?><p class="form-error" role="alert"><?= h($error) ?></p><?php endif; ?>
     <form method="post" action="<?= h($action) ?>" class="editor-form" enctype="multipart/form-data" data-editor-form><input type="hidden" name="csrf" value="<?= h(csrf_token()) ?>"><textarea name="body" id="body-markdown" hidden><?= form_value($entry, 'body') ?></textarea>
       <article class="exhibit editor-page">
-        <div class="exhibit-toolbar"><a class="back-link" href="/admin">← Curator desk</a><span class="editor-state"><?= $isExisting ? 'Editing exhibit' : 'New exhibit' ?></span><button type="submit" class="editor-top-save">Save exhibit</button></div>
+        <div class="exhibit-toolbar"><a class="back-link" href="/admin">← Curator desk</a><span class="editor-state"><?= $isExisting ? 'Editing exhibit' : 'New exhibit' ?></span><?php if ($isExisting && ($entry['status'] ?? '') === 'published'): ?><a class="public-entry-link" href="/exhibits/<?= rawurlencode((string) $entry['slug']) ?>" target="_blank" rel="noopener noreferrer">View public version ↗</a><?php endif; ?><button type="submit" class="editor-top-save">Save exhibit</button></div>
         <header>
           <label class="eyebrow editor-label" for="page-category">Category</label>
           <select id="page-category" class="page-category" name="category" required data-category-select>
