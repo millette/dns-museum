@@ -109,13 +109,19 @@ if (visualEditor) {
   form.addEventListener("paste", (event) => {
     const imageItem = Array.from(event.clipboardData?.items || []).find((item) => item.type.startsWith("image/"));
     const imageFile = imageItem?.getAsFile();
-    if (!imageFile || !["image/jpeg", "image/png", "image/webp"].includes(imageFile.type)) return;
+    if (!imageFile) return;
     event.preventDefault();
+    const pasteTarget = form.querySelector(".screenshot-paste-target");
+    if (!["image/jpeg", "image/png", "image/webp"].includes(imageFile.type)) {
+      pasteTarget.textContent = "Use a JPEG, PNG, or WebP screenshot.";
+      return;
+    }
     const extension = imageFile.type === "image/jpeg" ? "jpg" : imageFile.type.slice("image/".length);
     const transfer = new DataTransfer();
     transfer.items.add(new File([imageFile], `pasted-screenshot.${extension}`, { type: imageFile.type }));
     imageUpload.files = transfer.files;
     imageUpload.dispatchEvent(new Event("change", { bubbles: true }));
+    pasteTarget.textContent = "Screenshot added. Paste another image here or choose a file.";
   });
   form.elements.image.addEventListener("input", updateImage);
   visualEditor.addEventListener("input", updateMarkdown);

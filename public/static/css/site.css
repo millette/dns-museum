@@ -154,6 +154,8 @@ td small { display: block; }
 .new-category-field { display: block; width: fit-content; margin-top: 0.65rem; color: var(--quiet); font-size: 0.7rem; letter-spacing: 0.045em; text-transform: uppercase; }
 .new-category-field[hidden] { display: none; }
 .new-category-field input { display: block; min-width: 12rem; margin-top: 0.2rem; padding: 0.3rem 0.15rem; border: 0; border-bottom: 1px dashed var(--line-strong); background: transparent; color: var(--navy); font: inherit; letter-spacing: normal; text-transform: none; }
+.screenshot-paste-target { width: fit-content; margin-top: -0.5rem; padding: 0.65rem 0.8rem; border: 1px dashed var(--line-strong); border-radius: 0.3rem; color: var(--muted); cursor: text; font-size: 0.85rem; }
+.screenshot-paste-target:focus { outline: 2px solid rgb(23 105 210 / 25%); outline-offset: 2px; }
 .page-category:focus, .page-title-input:focus, .page-summary-input:focus, .page-tags-input:focus { outline: 2px solid rgb(23 105 210 / 16%); }
 .page-title-label, .page-summary-label, .tags-editor-label { margin-top: 0.8rem; color: var(--quiet); font-size: 0.7rem; letter-spacing: 0.045em; text-transform: uppercase; }
 .page-title-input { width: 100%; margin-top: 0.2rem; padding: 0.05rem 0.15rem; border: 0; border-bottom: 1px dashed var(--line-strong); border-radius: 0; background: transparent; color: var(--navy); font-size: clamp(2.25rem, 5vw, 3.75rem); font-weight: 650; letter-spacing: -0.035em; line-height: 1.16; }
