@@ -178,9 +178,13 @@ function csrf_valid(): bool
 
 function entry_from_request(): array
 {
+    $category = trim((string) ($_POST['category'] ?? ''));
+    if ($category === '__new__') {
+        $category = trim((string) ($_POST['category_new'] ?? ''));
+    }
     return [
         'slug' => trim((string) ($_POST['slug'] ?? '')), 'title' => trim((string) ($_POST['title'] ?? '')),
-        'summary' => trim((string) ($_POST['summary'] ?? '')), 'category' => trim((string) ($_POST['category'] ?? '')),
+        'summary' => trim((string) ($_POST['summary'] ?? '')), 'category' => $category,
         'tags' => trim((string) ($_POST['tags'] ?? '')), 'image' => trim((string) ($_POST['image'] ?? '')),
         'source' => trim((string) ($_POST['source'] ?? '')), 'status' => (string) ($_POST['status'] ?? 'draft'),
         'body' => (string) ($_POST['body'] ?? ''),

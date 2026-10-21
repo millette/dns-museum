@@ -88,7 +88,12 @@ function store_uploaded_image(string $slug): string {
 }
 
 function editor(array $entry, string $error = '', string $preview = ''): void {
+    global $store;
     $isExisting = $entry['slug'] !== '';
+    $categories = array_values(array_unique(array_filter(array_map(static fn (array $item): string => trim((string) $item['category']), $store->all(true)))));
+    sort($categories, SORT_NATURAL | SORT_FLAG_CASE);
+    $category = trim((string) ($entry['category'] ?? ''));
+    $newCategory = !in_array($category, $categories, true) && $category !== '';
     $tags = is_array($entry['tags'] ?? null) ? implode(', ', $entry['tags']) : (string) ($entry['tags'] ?? '');
     $action = $isExisting ? '/admin/exhibits/' . rawurlencode($entry['slug']) : '/admin/exhibits/new';
     ob_start();
@@ -99,7 +104,13 @@ function editor(array $entry, string $error = '', string $preview = ''): void {
       <article class="exhibit editor-page">
         <div class="exhibit-toolbar"><a class="back-link" href="/admin">← Curator desk</a><span class="editor-state"><?= $isExisting ? 'Editing exhibit' : 'New exhibit' ?></span><button type="submit" class="editor-top-save">Save exhibit</button></div>
         <header>
-          <label class="eyebrow editor-label">Category<input class="page-category" name="category" value="<?= form_value($entry, 'category') ?>" required aria-label="Category"></label>
+          <label class="eyebrow editor-label" for="page-category">Category</label>
+          <select id="page-category" class="page-category" name="category" required data-category-select>
+            <option value="" disabled <?= $category === '' ? 'selected' : '' ?>>Choose a category</option>
+            <?php foreach ($categories as $option): ?><option value="<?= h($option) ?>" <?= $category === $option ? 'selected' : '' ?>><?= h($option) ?></option><?php endforeach; ?>
+            <option value="__new__" <?= $newCategory ? 'selected' : '' ?>>Add new category…</option>
+          </select>
+          <label class="new-category-field" data-new-category-field <?= $newCategory ? '' : 'hidden' ?>>New category<input name="category_new" value="<?= $newCategory ? h($category) : '' ?>" data-new-category-input <?= $newCategory ? 'required' : '' ?>></label>
           <label class="page-title-label" for="page-title">Title</label><input id="page-title" class="page-title-input" name="title" value="<?= form_value($entry, 'title') ?>" required>
           <label class="page-summary-label" for="page-summary">Summary</label><textarea id="page-summary" class="page-summary-input" name="summary" rows="2" required><?= form_value($entry, 'summary') ?></textarea>
           <label class="editor-label tags-editor-label" for="page-tags">Tags <small>comma-separated</small></label><input id="page-tags" class="page-tags-input" name="tags" value="<?= h($tags) ?>">
@@ -115,8 +126,8 @@ function editor(array $entry, string $error = '', string $preview = ''): void {
         <p class="source-link editor-source"><label for="page-source">Primary source URL<input id="page-source" name="source" type="url" value="<?= form_value($entry, 'source') ?>"></label></p>
         <section class="editor-settings" aria-label="Exhibit settings"><h2>Exhibit settings</h2>
           <div class="field-row"><label>Path<input name="slug" value="<?= form_value($entry, 'slug') ?>" pattern="[a-z0-9]+(-[a-z0-9]+)*" required <?= $isExisting ? 'readonly' : '' ?>><small>lowercase words separated with hyphens</small></label><label>Status<select name="status"><option value="draft" <?= ($entry['status'] ?? '') === 'draft' ? 'selected' : '' ?>>Draft</option><option value="published" <?= ($entry['status'] ?? '') === 'published' ? 'selected' : '' ?>>Published</option></select></label></div>
-          <label>Slide image path<input name="image" value="<?= form_value($entry, 'image') ?>" placeholder="/static/images/talk/slide-7.webp"><small>Optional when you upload an image below.</small></label>
-          <label>Upload slide image<input type="file" name="image_upload" accept="image/jpeg,image/png,image/webp"><small>JPEG, PNG, or WebP up to 2 MB. The server saves the original and creates a 480-pixel WebP card thumbnail.</small></label>
+          <label>Screenshot<input name="image" value="<?= form_value($entry, 'image') ?>" placeholder="/static/images/talk/slide-7.webp"><small>Optional when you upload or paste a screenshot below.</small></label>
+          <label>Upload screenshot<input type="file" name="image_upload" accept="image/jpeg,image/png,image/webp"><small>Choose or paste a JPEG, PNG, or WebP up to 2 MB. The server saves the original and creates a 480-pixel WebP card thumbnail.</small></label>
         </section>
         <div class="editor-actions"><button type="submit">Save exhibit</button><a class="button secondary-button" href="<?= $isExisting && ($entry['status'] ?? '') === 'published' ? '/exhibits/' . rawurlencode($entry['slug']) : '/admin' ?>">Cancel</a></div>
       </article>

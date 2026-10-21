@@ -4,6 +4,20 @@ document.querySelectorAll("[data-delete-form]").forEach((form) => {
   });
 });
 
+const categorySelect = document.querySelector("[data-category-select]");
+if (categorySelect) {
+  const newCategoryField = document.querySelector("[data-new-category-field]");
+  const newCategoryInput = document.querySelector("[data-new-category-input]");
+  const updateCategoryField = (focusInput = false) => {
+    const addingCategory = categorySelect.value === "__new__";
+    newCategoryField.hidden = !addingCategory;
+    newCategoryInput.required = addingCategory;
+    if (addingCategory && focusInput) newCategoryInput.focus();
+  };
+  categorySelect.addEventListener("change", () => updateCategoryField(true));
+  updateCategoryField();
+}
+
 const visualEditor = document.querySelector("[data-visual-editor]");
 if (visualEditor) {
   const form = visualEditor.closest("form");
@@ -91,6 +105,17 @@ if (visualEditor) {
     if (uploadedImagePreview) URL.revokeObjectURL(uploadedImagePreview);
     uploadedImagePreview = imageUpload.files[0] ? URL.createObjectURL(imageUpload.files[0]) : "";
     updateImage();
+  });
+  form.addEventListener("paste", (event) => {
+    const imageItem = Array.from(event.clipboardData?.items || []).find((item) => item.type.startsWith("image/"));
+    const imageFile = imageItem?.getAsFile();
+    if (!imageFile || !["image/jpeg", "image/png", "image/webp"].includes(imageFile.type)) return;
+    event.preventDefault();
+    const extension = imageFile.type === "image/jpeg" ? "jpg" : imageFile.type.slice("image/".length);
+    const transfer = new DataTransfer();
+    transfer.items.add(new File([imageFile], `pasted-screenshot.${extension}`, { type: imageFile.type }));
+    imageUpload.files = transfer.files;
+    imageUpload.dispatchEvent(new Event("change", { bubbles: true }));
   });
   form.elements.image.addEventListener("input", updateImage);
   visualEditor.addEventListener("input", updateMarkdown);

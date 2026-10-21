@@ -151,6 +151,9 @@ td small { display: block; }
 .editor-label { width: fit-content; margin: 0 0 0.4rem; }
 .editor-label small { display: inline; font-size: inherit; font-weight: 450; letter-spacing: normal; text-transform: none; }
 .page-category { width: fit-content; min-width: 12rem; margin-top: 0.15rem; padding: 0.1rem 0.15rem; border: 0; border-bottom: 1px dashed var(--line-strong); border-radius: 0; background: transparent; color: var(--accent-dark); font: inherit; letter-spacing: inherit; text-transform: uppercase; }
+.new-category-field { display: block; width: fit-content; margin-top: 0.65rem; color: var(--quiet); font-size: 0.7rem; letter-spacing: 0.045em; text-transform: uppercase; }
+.new-category-field[hidden] { display: none; }
+.new-category-field input { display: block; min-width: 12rem; margin-top: 0.2rem; padding: 0.3rem 0.15rem; border: 0; border-bottom: 1px dashed var(--line-strong); background: transparent; color: var(--navy); font: inherit; letter-spacing: normal; text-transform: none; }
 .page-category:focus, .page-title-input:focus, .page-summary-input:focus, .page-tags-input:focus { outline: 2px solid rgb(23 105 210 / 16%); }
 .page-title-label, .page-summary-label, .tags-editor-label { margin-top: 0.8rem; color: var(--quiet); font-size: 0.7rem; letter-spacing: 0.045em; text-transform: uppercase; }
 .page-title-input { width: 100%; margin-top: 0.2rem; padding: 0.05rem 0.15rem; border: 0; border-bottom: 1px dashed var(--line-strong); border-radius: 0; background: transparent; color: var(--navy); font-size: clamp(2.25rem, 5vw, 3.75rem); font-weight: 650; letter-spacing: -0.035em; line-height: 1.16; }
