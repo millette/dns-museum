@@ -26,7 +26,7 @@ header('Content-Type: text/html; charset=utf-8');
 header('X-Content-Type-Options: nosniff');
 header('X-Frame-Options: DENY');
 header('Referrer-Policy: strict-origin-when-cross-origin');
-header("Content-Security-Policy: default-src 'self'; img-src 'self' https:; style-src 'self'; script-src 'self'; base-uri 'self'; form-action 'self'");
+header("Content-Security-Policy: default-src 'self'; img-src 'self' https: blob:; style-src 'self'; script-src 'self'; base-uri 'self'; form-action 'self'");
 
 function layout(string $title, string $content): void {
     echo '<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="description" content="DNS Museum: a field guide to unusual uses of the Domain Name System."><title>' . h($title) . '</title><link rel="stylesheet" href="/static/css/site.css?v=' . (string) filemtime(__DIR__ . '/static/css/site.css') . '"></head><body>';
@@ -87,6 +87,35 @@ function store_uploaded_image(string $slug): string {
     return '/static/images/uploads/' . $slug . '.' . $extension;
 }
 
+function store_body_images(string $slug, string $body): string {
+    $uploads = $_FILES['body_images'] ?? null;
+    if (!is_array($uploads) || !is_array($uploads['tmp_name'] ?? null)) { return $body; }
+    if (!preg_match('/\A[a-z0-9]+(?:-[a-z0-9]+)*\z/', $slug) || strlen($slug) > 90) { throw new InvalidArgumentException('Use a valid entry path before uploading an image.'); }
+    $directory = dirname(__DIR__) . '/public/static/images/uploads/body';
+    if (!is_dir($directory) && !mkdir($directory, 0755, true) && !is_dir($directory)) { throw new RuntimeException('The body image directory could not be created.'); }
+    $paths = [];
+    foreach ($uploads['tmp_name'] as $index => $temporaryPath) {
+        $error = (int) ($uploads['error'][$index] ?? UPLOAD_ERR_NO_FILE);
+        if ($error === UPLOAD_ERR_NO_FILE) { continue; }
+        if ($error !== UPLOAD_ERR_OK || !is_uploaded_file((string) $temporaryPath) || (int) ($uploads['size'][$index] ?? 0) > 2 * 1024 * 1024) {
+            throw new InvalidArgumentException('Choose body screenshots smaller than 2 MB each and try again.');
+        }
+        $info = @getimagesize((string) $temporaryPath);
+        if ($info === false || !in_array($info[2], [IMAGETYPE_JPEG, IMAGETYPE_PNG, IMAGETYPE_WEBP], true) || $info[0] > 8000 || $info[1] > 8000 || $info[0] * $info[1] > 20000000) {
+            throw new InvalidArgumentException('Use JPEG, PNG, or WebP screenshots up to 8000 pixels wide and high.');
+        }
+        $extension = match ($info[2]) { IMAGETYPE_JPEG => 'jpg', IMAGETYPE_PNG => 'png', IMAGETYPE_WEBP => 'webp' };
+        $filename = $slug . '-' . bin2hex(random_bytes(8)) . '.' . $extension;
+        if (!move_uploaded_file((string) $temporaryPath, $directory . '/' . $filename)) { throw new RuntimeException('A body screenshot could not be saved.'); }
+        $paths[(int) $index] = '/static/images/uploads/body/' . $filename;
+    }
+    return preg_replace_callback('/!\[([^\]]*)\]\(upload:(\d+)\)(?:\{width=(25|50|75|100)%\})?/', static function (array $match) use ($paths): string {
+        if (!isset($paths[(int) $match[2]])) { return $match[0]; }
+        $width = in_array($match[3] ?? '', ['25', '50', '75', '100'], true) ? $match[3] : '50';
+        return '![' . $match[1] . '](' . $paths[(int) $match[2]] . '){width=' . $width . '%}';
+    }, $body) ?? $body;
+}
+
 function editor(array $entry, string $error = '', string $preview = ''): void {
     global $store;
     $isExisting = $entry['slug'] !== '';
@@ -110,7 +139,7 @@ function editor(array $entry, string $error = '', string $preview = ''): void {
     ?>
     <section class="admin edit">
     <?php if ($error !== ''): ?><p class="form-error" role="alert"><?= h($error) ?></p><?php endif; ?>
-    <form method="post" action="<?= h($action) ?>" class="editor-form" enctype="multipart/form-data" data-editor-form><input type="hidden" name="csrf" value="<?= h(csrf_token()) ?>"><textarea name="body" id="body-markdown" hidden><?= form_value($entry, 'body') ?></textarea>
+    <form method="post" action="<?= h($action) ?>" class="editor-form" enctype="multipart/form-data" data-editor-form><input type="hidden" name="csrf" value="<?= h(csrf_token()) ?>"><input type="file" name="body_images[]" accept="image/jpeg,image/png,image/webp" multiple hidden data-body-image-upload><textarea name="body" id="body-markdown" hidden><?= form_value($entry, 'body') ?></textarea>
       <article class="exhibit editor-page">
         <div class="exhibit-toolbar"><a class="back-link" href="/admin">← Curator desk</a><span class="editor-state"><?= $isExisting ? 'Editing exhibit' : 'New exhibit' ?></span><?php if ($isExisting && ($entry['status'] ?? '') === 'published'): ?><a class="public-entry-link" href="/exhibits/<?= rawurlencode((string) $entry['slug']) ?>" target="_blank" rel="noopener noreferrer">View public version ↗</a><?php endif; ?><button type="submit" class="editor-top-save">Save exhibit</button></div>
         <header>
@@ -132,9 +161,9 @@ function editor(array $entry, string $error = '', string $preview = ''): void {
         </header>
         <figure class="editor-image" data-editor-figure <?= ($entry['image'] ?? '') === '' ? 'hidden' : '' ?>><img data-editor-image<?= ($entry['image'] ?? '') !== '' ? ' src="' . h((string) $entry['image']) . '"' : '' ?> alt="Screenshot used in the talk"><figcaption>Screenshot used in the original talk.</figcaption></figure>
         <section class="prose editor-body">
-          <div class="editor-body-heading"><h2>Exhibit content</h2><small>Format the text as it will appear on the exhibit page.</small></div>
+          <div class="editor-body-heading"><h2>Exhibit content</h2><small>Paste a JPEG, PNG, or WebP screenshot up to 2 MB into the body. Select it to set its width in the toolbar.</small></div>
           <div class="format-toolbar" role="toolbar" aria-label="Text formatting">
-            <button type="button" class="toolbar-button" data-format="p">Paragraph</button><button type="button" class="toolbar-button" data-format="h2">Heading</button><button type="button" class="toolbar-button" data-format="h3">Subheading</button><span aria-hidden="true"></span><button type="button" class="toolbar-button" data-format="bold" aria-label="Bold"><strong>B</strong></button><button type="button" class="toolbar-button" data-format="italic" aria-label="Italic"><em>I</em></button><button type="button" class="toolbar-button" data-format="ul">Bulleted list</button><button type="button" class="toolbar-button" data-format="pre">Code block</button><button type="button" class="toolbar-button" data-format="link">Link</button>
+            <button type="button" class="toolbar-button" data-format="p">Paragraph</button><button type="button" class="toolbar-button" data-format="h2">Heading</button><button type="button" class="toolbar-button" data-format="h3">Subheading</button><span aria-hidden="true"></span><button type="button" class="toolbar-button" data-format="bold" aria-label="Bold"><strong>B</strong></button><button type="button" class="toolbar-button" data-format="italic" aria-label="Italic"><em>I</em></button><button type="button" class="toolbar-button" data-format="ul">Bulleted list</button><button type="button" class="toolbar-button" data-format="pre">Code block</button><button type="button" class="toolbar-button" data-format="link">Link</button><label class="toolbar-image-size-label">Image width<select class="toolbar-image-size" data-body-image-size disabled><option value="25">25%</option><option value="50" selected>50%</option><option value="75">75%</option><option value="100">100%</option></select></label>
           </div>
           <div id="body-editor" class="visual-editor" contenteditable="true" role="textbox" aria-label="Exhibit content" aria-multiline="true" data-visual-editor><?= render_markdown((string) ($entry['body'] ?? '')) ?></div>
         </section>
@@ -193,12 +222,12 @@ try {
         <?php layout('Curator desk · DNS Museum', (string) ob_get_clean()); exit;
     }
     if ($path === '/admin/exhibits/new' && $method === 'GET') { require_admin(); editor(['slug' => '', 'title' => '', 'summary' => '', 'category' => '', 'tags' => [], 'image' => '', 'source' => '', 'status' => 'draft', 'body' => '']); exit; }
-    if ($path === '/admin/exhibits/new' && $method === 'POST') { require_admin(); if (!csrf_valid()) { http_response_code(403); exit('Request expired. Reload and try again.'); } $entry = entry_from_request(); try { $uploaded = store_uploaded_image($entry['slug']); if ($uploaded !== '') { $entry['image'] = $uploaded; } $store->save($entry); redirect('/admin/exhibits/' . rawurlencode($entry['slug'])); } catch (Throwable $error) { http_response_code(422); editor($entry, $error->getMessage()); exit; } }
+    if ($path === '/admin/exhibits/new' && $method === 'POST') { require_admin(); if (!csrf_valid()) { http_response_code(403); exit('Request expired. Reload and try again.'); } $entry = entry_from_request(); try { $uploaded = store_uploaded_image($entry['slug']); if ($uploaded !== '') { $entry['image'] = $uploaded; } $entry['body'] = store_body_images($entry['slug'], $entry['body']); $store->save($entry); redirect('/admin/exhibits/' . rawurlencode($entry['slug'])); } catch (Throwable $error) { http_response_code(422); editor($entry, $error->getMessage()); exit; } }
     if ($path === '/admin/exhibits/new/preview' && $method === 'POST') { require_admin(); if (!csrf_valid()) { http_response_code(403); exit('Request expired. Reload and try again.'); } $entry = entry_from_request(); editor($entry, '', render_markdown($entry['body'])); exit; }
     if (preg_match('#\A/admin/exhibits/([a-z0-9-]+)\z#', $path, $matches)) {
         require_admin(); $slug = $matches[1];
         if ($method === 'GET') { editor($store->get($slug)); exit; }
-        if ($method === 'POST') { if (!csrf_valid()) { http_response_code(403); exit('Request expired. Reload and try again.'); } $entry = entry_from_request(); if ($entry['slug'] !== $slug) { http_response_code(422); editor($entry, 'The path cannot change after creation.'); exit; } try { $uploaded = store_uploaded_image($slug); if ($uploaded !== '') { $entry['image'] = $uploaded; } $store->save($entry); redirect('/admin/exhibits/' . rawurlencode($slug)); } catch (Throwable $error) { http_response_code(422); editor($entry, $error->getMessage()); exit; } }
+        if ($method === 'POST') { if (!csrf_valid()) { http_response_code(403); exit('Request expired. Reload and try again.'); } $entry = entry_from_request(); if ($entry['slug'] !== $slug) { http_response_code(422); editor($entry, 'The path cannot change after creation.'); exit; } try { $uploaded = store_uploaded_image($slug); if ($uploaded !== '') { $entry['image'] = $uploaded; } $entry['body'] = store_body_images($slug, $entry['body']); $store->save($entry); redirect('/admin/exhibits/' . rawurlencode($slug)); } catch (Throwable $error) { http_response_code(422); editor($entry, $error->getMessage()); exit; } }
     }
     if (preg_match('#\A/admin/exhibits/([a-z0-9-]+)/preview\z#', $path, $matches) && $method === 'POST') { require_admin(); if (!csrf_valid()) { http_response_code(403); exit('Request expired. Reload and try again.'); } $entry = entry_from_request(); editor($entry, '', render_markdown($entry['body'])); exit; }
     if (preg_match('#\A/admin/exhibits/([a-z0-9-]+)/delete\z#', $path, $matches) && $method === 'POST') { require_admin(); if (!csrf_valid()) { http_response_code(403); exit('Request expired. Reload and try again.'); } $store->delete($matches[1]); redirect('/admin'); }

@@ -155,6 +155,15 @@ function render_markdown(string $markdown): string
 function render_inline(string $text): string
 {
     $text = h($text);
+    $text = preg_replace_callback('/!\[([^\]]*)\]\(([^)\s]+)\)(?:\{width=(25|50|75|100)%\})?/', static function (array $match): string {
+        $source = html_entity_decode($match[2], ENT_QUOTES | ENT_HTML5, 'UTF-8');
+        $parts = parse_url($source);
+        $scheme = strtolower((string) ($parts['scheme'] ?? ''));
+        $safeImage = $parts !== false && (($scheme === '' && str_starts_with($source, '/') && !str_starts_with($source, '//')) || in_array($scheme, ['http', 'https'], true));
+        if (!$safeImage) { return $match[0]; }
+        $width = in_array($match[3] ?? '', ['25', '50', '75', '100'], true) ? $match[3] : '100';
+        return '<img class="body-image body-image-size-' . $width . '" data-width="' . $width . '" src="' . h($source) . '" alt="' . $match[1] . '">';
+    }, $text) ?? $text;
     $text = preg_replace_callback('/\[([^\]]+)\]\(([^\s)]+)\)/', static function (array $match): string {
         $url = html_entity_decode($match[2], ENT_QUOTES | ENT_HTML5, 'UTF-8');
         return safe_url($url) ? '<a href="' . h($url) . '" rel="noopener noreferrer">' . $match[1] . '</a>' : $match[1];

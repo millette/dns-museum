@@ -101,6 +101,10 @@ const visualEditor = document.querySelector("[data-visual-editor]");
 if (visualEditor) {
   const form = visualEditor.closest("form");
   const markdownField = form.querySelector("#body-markdown");
+  const bodyImageUpload = form.querySelector("[data-body-image-upload]");
+  const bodyImageSize = form.querySelector("[data-body-image-size]");
+  const imageWidths = [25, 50, 75, 100];
+  let selectedBodyImage = null;
   let uploadedImagePreview = "";
 
   const safeLink = (value) => {
@@ -124,6 +128,13 @@ if (visualEditor) {
         const href = safeLink(node.getAttribute("href") || "");
         return href ? `[${inner}](${href})` : inner;
       }
+      case "IMG": {
+        const source = node.dataset.uploadIndex !== undefined ? `upload:${node.dataset.uploadIndex}` : safeLink(node.getAttribute("src") || "");
+        if (!source) return "";
+        const alt = (node.getAttribute("alt") || "Screenshot").replace(/[\]\r\n]/g, "");
+        const width = imageWidths.includes(Number(node.dataset.width)) ? Number(node.dataset.width) : 100;
+        return `![${alt}](${source}){width=${width}%}`;
+      }
       case "BR": return "\n";
       default: return inner;
     }
@@ -146,6 +157,73 @@ if (visualEditor) {
 
   const updateMarkdown = () => {
     markdownField.value = Array.from(visualEditor.childNodes, blockMarkdown).filter(Boolean).join("\n\n").trim();
+  };
+
+  const setSelectedBodyImage = (image) => {
+    if (selectedBodyImage) selectedBodyImage.classList.remove("is-selected");
+    selectedBodyImage = image;
+    if (selectedBodyImage) {
+      selectedBodyImage.classList.add("is-selected");
+      bodyImageSize.disabled = false;
+      bodyImageSize.value = String(imageWidths.includes(Number(selectedBodyImage.dataset.width)) ? Number(selectedBodyImage.dataset.width) : 100);
+    } else {
+      bodyImageSize.disabled = true;
+    }
+  };
+
+  const addBodyImage = (imageFile) => {
+    const currentFiles = Array.from(bodyImageUpload.files);
+    const index = currentFiles.length;
+    const extension = imageFile.type === "image/jpeg" ? "jpg" : imageFile.type.slice("image/".length);
+    const file = new File([imageFile], `body-screenshot-${index}.${extension}`, { type: imageFile.type });
+    const transfer = new DataTransfer();
+    currentFiles.forEach((currentFile) => transfer.items.add(currentFile));
+    transfer.items.add(file);
+    bodyImageUpload.files = transfer.files;
+
+    const image = document.createElement("img");
+    image.src = URL.createObjectURL(file);
+    image.alt = "Pasted screenshot";
+    image.dataset.uploadIndex = String(index);
+    image.dataset.width = "50";
+    image.className = "body-image body-image-size-50";
+
+    const selection = window.getSelection();
+    let range = selection && selection.rangeCount > 0 ? selection.getRangeAt(0) : null;
+    if (!range || !visualEditor.contains(range.commonAncestorContainer)) {
+      range = document.createRange();
+      range.selectNodeContents(visualEditor);
+      range.collapse(false);
+    }
+    range.deleteContents();
+    range.insertNode(image);
+    const spacer = document.createTextNode(" ");
+    image.after(spacer);
+    range.setStartAfter(spacer);
+    range.collapse(true);
+    if (selection) {
+      selection.removeAllRanges();
+      selection.addRange(range);
+    }
+    setSelectedBodyImage(image);
+    updateMarkdown();
+  };
+
+  const syncBodyImageUploads = () => {
+    const indexes = Array.from(new Set(Array.from(visualEditor.querySelectorAll("img[data-upload-index]"), (image) => Number(image.dataset.uploadIndex)))).sort((a, b) => a - b);
+    const files = Array.from(bodyImageUpload.files);
+    const transfer = new DataTransfer();
+    const newIndexes = new Map();
+    indexes.forEach((oldIndex, newIndex) => {
+      if (files[oldIndex]) {
+        transfer.items.add(files[oldIndex]);
+        newIndexes.set(oldIndex, newIndex);
+      }
+    });
+    visualEditor.querySelectorAll("img[data-upload-index]").forEach((image) => {
+      image.dataset.uploadIndex = String(newIndexes.get(Number(image.dataset.uploadIndex)) ?? image.dataset.uploadIndex);
+    });
+    bodyImageUpload.files = transfer.files;
   };
 
   const updateImage = () => {
@@ -179,6 +257,31 @@ if (visualEditor) {
     });
   });
 
+  visualEditor.addEventListener("click", (event) => {
+    const image = event.target instanceof HTMLImageElement && event.target.classList.contains("body-image") ? event.target : null;
+    setSelectedBodyImage(image);
+  });
+  bodyImageSize.addEventListener("change", () => {
+    if (!selectedBodyImage) return;
+    const width = imageWidths.includes(Number(bodyImageSize.value)) ? Number(bodyImageSize.value) : 100;
+    selectedBodyImage.classList.remove(...imageWidths.map((value) => `body-image-size-${value}`));
+    selectedBodyImage.classList.add(`body-image-size-${width}`);
+    selectedBodyImage.dataset.width = String(width);
+    updateMarkdown();
+  });
+  visualEditor.addEventListener("paste", (event) => {
+    const imageItem = Array.from(event.clipboardData?.items || []).find((item) => item.type.startsWith("image/"));
+    const imageFile = imageItem?.getAsFile();
+    if (!imageFile) return;
+    event.preventDefault();
+    event.stopPropagation();
+    if (!["image/jpeg", "image/png", "image/webp"].includes(imageFile.type)) {
+      window.alert("Use a JPEG, PNG, or WebP screenshot.");
+      return;
+    }
+    addBodyImage(imageFile);
+  });
+
   const imageUpload = form.querySelector('input[type="file"][name="image_upload"]');
   imageUpload.addEventListener("change", () => {
     if (uploadedImagePreview) URL.revokeObjectURL(uploadedImagePreview);
@@ -205,6 +308,7 @@ if (visualEditor) {
   form.elements.image.addEventListener("input", updateImage);
   visualEditor.addEventListener("input", updateMarkdown);
   form.addEventListener("submit", (event) => {
+    syncBodyImageUploads();
     updateMarkdown();
     if (!markdownField.value) {
       event.preventDefault();

@@ -32,7 +32,7 @@ updated: 2026-08-20T00:00:00Z
 Markdown body here.
 ```
 
-Use `status: draft` to keep an exhibit in the curator desk until it is ready. The admin editor writes these Markdown files and provides a live page preview. It can publish or delete an exhibit. It accepts JPEG, PNG, and WebP slide images up to 2 MB and saves a 480-pixel WebP card thumbnail under `public/static/images/uploads`.
+Use `status: draft` to keep an exhibit in the curator desk until it is ready. The admin editor writes these Markdown files and provides a live page preview. It can publish or delete an exhibit. It accepts JPEG, PNG, and WebP slide images up to 2 MB and saves a 480-pixel WebP card thumbnail under `public/static/images/uploads`. Screenshots pasted into exhibit content are stored under `public/static/images/uploads/body`.
 
 Slide images in `public/static/images/talk` are optimised WebP copies of selected source slides. Their card thumbnails are in `public/static/images/talk/thumbnails`. Record the original source in the exhibit; do not add third-party assets without recording their source.
 
@@ -42,4 +42,4 @@ Serve the site through HTTPS with a web server such as nginx or Caddy and PHP-FP
 
 Deploy a reviewed, version-controlled commit and push the deployed DNS Museum changes to GitHub as part of every live deployment. Keep the server's `.env`, `content/exhibits`, and `public/static/images/uploads` files when deploying code. Back up editorial content before making changes.
 
-Give PHP-FPM write access only to `content/exhibits`, `public/static/images/uploads`, and its `thumbnails` subdirectory. Image uploads need ImageMagick with WebP support. Set `MUSEUM_IMAGE_MAGICK` in `.env` if the `convert` binary is not at its default location, `/usr/bin/convert`.
+Give PHP-FPM write access only to `content/exhibits`, `public/static/images/uploads`, and its `thumbnails` and `body` subdirectories. Slide image uploads need ImageMagick with WebP support to create card thumbnails. Set `MUSEUM_IMAGE_MAGICK` in `.env` if the `convert` binary is not at its default location, `/usr/bin/convert`.

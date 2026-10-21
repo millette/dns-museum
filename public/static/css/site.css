@@ -175,9 +175,19 @@ td small { display: block; }
 .format-toolbar span { width: 1px; margin-inline: 0.2rem; background: var(--line-strong); }
 .toolbar-button { padding: 0.32rem 0.5rem; border-color: var(--line); background: #fff; color: var(--navy); font-size: 0.75rem; }
 .toolbar-button:hover { border-color: var(--accent); background: #fff; color: var(--accent-dark); }
+.toolbar-image-size-label { display: inline-flex; align-items: center; gap: 0.35rem; color: var(--muted); font-size: 0.75rem; font-weight: 600; }
+.toolbar-image-size { width: auto; min-height: 2rem; padding: 0.2rem 0.35rem; font-size: 0.75rem; }
+.toolbar-image-size:disabled { opacity: 0.55; }
 .visual-editor { min-height: 18rem; padding: 0.5rem 0.85rem; border: 1px dashed var(--line-strong); border-radius: 0 0 0.3rem 0.3rem; background: var(--surface); outline: none; }
 .visual-editor:focus { outline: 3px solid rgb(23 105 210 / 16%); border-color: var(--accent); }
 .visual-editor:empty::before { color: var(--quiet); content: "Write your exhibit here…"; }
+.body-image { display: block; height: auto; max-width: 100%; margin: 0.8rem auto; border: 1px solid var(--line); }
+.body-image-size-25 { width: 25%; }
+.body-image-size-50 { width: 50%; }
+.body-image-size-75 { width: 75%; }
+.body-image-size-100 { width: 100%; }
+.visual-editor .body-image { cursor: pointer; }
+.visual-editor .body-image.is-selected { outline: 2px solid var(--accent); outline-offset: 2px; }
 .editor-source { max-width: none; }
 .editor-source label { color: var(--muted); font-size: inherit; font-weight: inherit; }
 .editor-source input { margin-top: 0.35rem; }
