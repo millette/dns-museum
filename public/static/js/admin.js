@@ -18,6 +18,85 @@ if (categorySelect) {
   updateCategoryField();
 }
 
+const tagInput = document.querySelector("[data-tag-autocomplete] #page-tags");
+if (tagInput) {
+  const suggestions = document.querySelector("#tag-suggestions");
+  const existingTags = Array.from(document.querySelectorAll("#existing-tags option"), (option) => option.value);
+  let matches = [];
+  let activeIndex = -1;
+
+  const hideSuggestions = () => {
+    suggestions.hidden = true;
+    suggestions.replaceChildren();
+    tagInput.setAttribute("aria-expanded", "false");
+    tagInput.removeAttribute("aria-activedescendant");
+    matches = [];
+    activeIndex = -1;
+  };
+
+  const chooseTag = (tag) => {
+    const comma = tagInput.value.lastIndexOf(",");
+    const prefix = comma === -1 ? "" : tagInput.value.slice(0, comma + 1);
+    const spacer = prefix && !/\s$/.test(prefix) ? " " : "";
+    tagInput.value = `${prefix}${spacer}${tag}, `;
+    tagInput.focus();
+    tagInput.setSelectionRange(tagInput.value.length, tagInput.value.length);
+    tagInput.dispatchEvent(new Event("input", { bubbles: true }));
+  };
+
+  const updateActiveOption = () => {
+    Array.from(suggestions.children).forEach((option, index) => {
+      option.setAttribute("aria-selected", index === activeIndex ? "true" : "false");
+    });
+    if (activeIndex >= 0) tagInput.setAttribute("aria-activedescendant", `tag-suggestion-${activeIndex}`);
+    else tagInput.removeAttribute("aria-activedescendant");
+  };
+
+  tagInput.addEventListener("input", () => {
+    const comma = tagInput.value.lastIndexOf(",");
+    const query = tagInput.value.slice(comma + 1).trim();
+    const alreadyAdded = (comma === -1 ? "" : tagInput.value.slice(0, comma))
+      .split(",").map((tag) => tag.trim().toLocaleLowerCase()).filter(Boolean);
+    const normalizedQuery = query.toLocaleLowerCase();
+    matches = query === "" ? [] : existingTags
+      .filter((tag) => tag.toLocaleLowerCase().startsWith(normalizedQuery) && !alreadyAdded.includes(tag.toLocaleLowerCase()))
+      .slice(0, 8);
+    suggestions.replaceChildren();
+    activeIndex = -1;
+    matches.forEach((tag, index) => {
+      const option = document.createElement("li");
+      option.id = `tag-suggestion-${index}`;
+      option.setAttribute("role", "option");
+      option.setAttribute("aria-selected", "false");
+      option.textContent = tag;
+      option.addEventListener("mousedown", (event) => event.preventDefault());
+      option.addEventListener("click", () => chooseTag(tag));
+      suggestions.append(option);
+    });
+    suggestions.hidden = matches.length === 0;
+    tagInput.setAttribute("aria-expanded", matches.length > 0 ? "true" : "false");
+  });
+
+  tagInput.addEventListener("keydown", (event) => {
+    if (suggestions.hidden) return;
+    if (event.key === "ArrowDown" || event.key === "ArrowUp") {
+      event.preventDefault();
+      const direction = event.key === "ArrowDown" ? 1 : -1;
+      activeIndex = activeIndex < 0
+        ? (direction === 1 ? 0 : matches.length - 1)
+        : (activeIndex + direction + matches.length) % matches.length;
+      updateActiveOption();
+    } else if (event.key === "Enter" && activeIndex >= 0) {
+      event.preventDefault();
+      chooseTag(matches[activeIndex]);
+    } else if (event.key === "Escape") {
+      hideSuggestions();
+    }
+  });
+
+  tagInput.addEventListener("blur", () => window.setTimeout(hideSuggestions, 120));
+}
+
 const visualEditor = document.querySelector("[data-visual-editor]");
 if (visualEditor) {
   const form = visualEditor.closest("form");

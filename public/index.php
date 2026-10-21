@@ -90,8 +90,18 @@ function store_uploaded_image(string $slug): string {
 function editor(array $entry, string $error = '', string $preview = ''): void {
     global $store;
     $isExisting = $entry['slug'] !== '';
-    $categories = array_values(array_unique(array_filter(array_map(static fn (array $item): string => trim((string) $item['category']), $store->all(true)))));
+    $allEntries = $store->all(true);
+    $categories = array_values(array_unique(array_filter(array_map(static fn (array $item): string => trim((string) $item['category']), $allEntries))));
     sort($categories, SORT_NATURAL | SORT_FLAG_CASE);
+    $tagMap = [];
+    foreach ($allEntries as $item) {
+        foreach (($item['tags'] ?? []) as $tag) {
+            $tag = trim((string) $tag);
+            if ($tag !== '') { $tagMap[strtolower($tag)] = $tag; }
+        }
+    }
+    $existingTags = array_values($tagMap);
+    sort($existingTags, SORT_NATURAL | SORT_FLAG_CASE);
     $category = trim((string) ($entry['category'] ?? ''));
     $newCategory = !in_array($category, $categories, true) && $category !== '';
     $tags = is_array($entry['tags'] ?? null) ? implode(', ', $entry['tags']) : (string) ($entry['tags'] ?? '');
@@ -113,7 +123,12 @@ function editor(array $entry, string $error = '', string $preview = ''): void {
           <label class="new-category-field" data-new-category-field <?= $newCategory ? '' : 'hidden' ?>>New category<input name="category_new" value="<?= $newCategory ? h($category) : '' ?>" data-new-category-input <?= $newCategory ? 'required' : '' ?>></label>
           <label class="page-title-label" for="page-title">Title</label><input id="page-title" class="page-title-input" name="title" value="<?= form_value($entry, 'title') ?>" required>
           <label class="page-summary-label" for="page-summary">Summary</label><textarea id="page-summary" class="page-summary-input" name="summary" rows="2" required><?= form_value($entry, 'summary') ?></textarea>
-          <label class="editor-label tags-editor-label" for="page-tags">Tags <small>comma-separated</small></label><input id="page-tags" class="page-tags-input" name="tags" value="<?= h($tags) ?>">
+          <label class="editor-label tags-editor-label" for="page-tags">Tags <small>comma-separated; type to see existing tags</small></label>
+          <div class="tag-autocomplete" data-tag-autocomplete>
+            <input id="page-tags" class="page-tags-input" name="tags" value="<?= h($tags) ?>" autocomplete="off" aria-autocomplete="list" aria-controls="tag-suggestions" aria-expanded="false">
+            <ul id="tag-suggestions" class="tag-suggestions" role="listbox" hidden></ul>
+          </div>
+          <datalist id="existing-tags"><?php foreach ($existingTags as $tag): ?><option value="<?= h($tag) ?>"></option><?php endforeach; ?></datalist>
         </header>
         <figure class="editor-image" data-editor-figure <?= ($entry['image'] ?? '') === '' ? 'hidden' : '' ?>><img data-editor-image<?= ($entry['image'] ?? '') !== '' ? ' src="' . h((string) $entry['image']) . '"' : '' ?> alt="Screenshot used in the talk"><figcaption>Screenshot used in the original talk.</figcaption></figure>
         <section class="prose editor-body">
